@@ -1,0 +1,43 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="theme-color" content="#101c31"/><title>Host — 5S Speedrun</title>
+<link rel="stylesheet" href="/static/styles.css"/>
+</head><body class="host-body">
+<header class="topbar">
+ <div class="brandline"><span class="logo-mark">5S</span><span>LEAN LAB <b>LIVE</b></span></div>
+ <div class="topbar-right"><div class="connection-state" id="connection"><span class="live-dot"></span> Connecting…</div><span class="topbar-chip">HOST VIEW · PROJECT THIS SCREEN</span></div>
+</header>
+<main class="host-layout">
+ <section class="host-side">
+  <div class="card qr-card">
+    <div class="row-space"><div class="eyebrow dark">SCAN TO JOIN</div><div class="mini-pill">LIVE ROOM</div></div>
+    <div class="qr-image-wrap"><img id="qrImage" alt="Room join QR code"/></div>
+    <div class="room-code" id="roomCode">······</div>
+    <div class="muted center">Open camera · scan · enter your name</div>
+    <div class="join-copy"><span id="joinUrl" class="small">Loading…</span><button id="copyLink" title="Copy participant link">Copy</button></div>
+    <details class="link-settings"><summary>Joining from a different Wi-Fi / LAN?</summary><label for="baseUrl">Host website address accessible by phone</label><input type="text" id="baseUrl" placeholder="https://your-game.onrender.com"/><button id="updateUrl" class="text-button">Update QR</button></details>
+  </div>
+  <div class="card host-controls">
+    <div class="row-space"><h3>GAME CONTROL</h3><span id="playerCount" class="mini-pill">0 players</span></div>
+    <div class="round-info"><div class="round-label">CURRENT STAGE</div><strong id="stageTitle">Lobby</strong><p id="stageDescription">Players can join from the QR code.</p></div>
+    <button class="btn btn-primary full" id="startBtn" disabled>Start round 1 <span>→</span></button>
+    <button class="btn btn-secondary full" id="endBtn" hidden>End round now</button>
+    <button class="btn btn-ghost full" id="resetBtn">↻ Reset all scores</button>
+    <div class="hint" id="hostHint">At least one player must join before you start.</div>
+  </div>
+ </section>
+ <section class="host-main">
+  <div class="arena-header">
+   <div><div class="eyebrow"><span class="live-dot"></span> THE FACTORY CHALLENGE</div><h1>5S <em>SPEEDRUN</em></h1><p>Same job. Better workplace. Faster results.</p></div>
+   <div class="phase-badge" id="phaseBadge">WAITING ROOM</div>
+  </div>
+  <div class="round-track" id="roundTrack"><div class="round-node selected"><span>01</span> BEFORE 5S</div><div class="round-node"><span>02</span> SORT</div><div class="round-node"><span>03</span> SET IN ORDER</div></div>
+  <div class="score-topline"><div><div class="eyebrow">LIVE LEAGUE</div><h2 id="scoreTitle">Leaderboard</h2><p class="muted" id="scoreSubtitle">Everyone starts at zero. Who will move up?</p></div><div id="bigTimer" class="big-timer">00:30</div></div>
+  <div id="podium" class="podium"></div>
+  <div class="leaderboard card" id="leaderboard"><div class="empty-state"><span>🏁</span><h3>Ready, team?</h3><p>Scan the QR code on the left to get started.</p></div></div>
+  <div class="host-tip" id="takeaway">💡 <strong>Debrief:</strong> We are not changing the work or working harder — we are reducing wasted motion and searching.</div>
+ </section>
+</main>
+<script src="/static/common.js"></script>
+<script src="/static/host.js"></script>
+</body></html>
