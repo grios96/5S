@@ -9,7 +9,7 @@
    <div class="join-illustration">⚡</div>
    <div class="eyebrow center">WELCOME TO THE 5S CHALLENGE</div>
    <h1 class="join-title">ARE YOU <em>READY?</em></h1>
-   <p class="join-intro">Four rounds. Thirty seconds each. Tap the numbers in order, starting from <b>1</b>.</p>
+   <p class="join-intro">Four 20-second shifts plus two missing-number challenges. First, cross off <b>1 → 49</b> in order; then find what is missing, before and after 5S.</p>
    <form id="joinForm" class="join-form"><label for="nameInput">YOUR NICKNAME</label><input id="nameInput" type="text" maxlength="22" autocomplete="nickname" placeholder="Your first name" required/><button class="btn btn-primary btn-xl full">JOIN THE CHALLENGE →</button></form>
    <p class="tiny muted center" id="joinMessage">No registration. Your score is saved for this game.</p>
  </section>
@@ -17,20 +17,27 @@
    <div class="joined-icon">✓</div><div class="eyebrow center">YOU'RE IN!</div><h1 class="center" id="welcomeTitle">READY TO GO</h1>
    <p class="center muted">Look at the big screen. Your host will start the next round.</p>
    <div class="waiting-card"><div class="pulse-dot"></div><div><strong id="waitingTitle">Waiting for the host</strong><div id="waitingDesc" class="muted">Get your tapping finger ready.</div></div></div>
-   <div class="instruction-card"><span>🎯</span><p>Tap <b>1 → 2 → 3 → … → 30</b> as fast as possible.<br/>Wrong taps cost 2 points.</p></div>
+   <div class="instruction-card"><span>🎯</span><p>Tap <b>1 → 2 → 3 → … → 49</b> in order during each 20-second shift.<br/>No penalties or speed bonuses. Team score = lowest individual result.</p></div>
  </section>
  <section id="gameScreen" class="screen" hidden>
-  <div class="game-head"><div><div id="roundTitle" class="eyebrow">ROUND 01</div><h2 id="roundDesc">BEFORE 5S</h2></div><div id="playerTimer" class="player-timer">00:30</div></div>
-  <div class="progress-card"><div class="row-space"><span>NEXT NUMBER</span><b id="nextNumber">1</b></div><div class="progress-track"><div id="progressFill" class="progress-fill"></div></div><div class="row-space stats-line"><span><strong id="correctCount">0</strong> / 30 found</span><span><strong id="roundPoints">0</strong> pts</span></div></div>
-  <div class="board-instructions" id="boardInstructions">Find and tap numbers <b>1 to 30</b> in order!</div>
+  <div class="game-head"><div><div id="roundTitle" class="eyebrow">ROUND 01</div><h2 id="roundDesc">BEFORE 5S</h2></div><div id="playerTimer" class="player-timer">00:20</div></div>
+  <div class="progress-card" id="progressCard"><div class="row-space"><span>NEXT NUMBER</span><b id="nextNumber">1</b></div><div class="progress-track"><div id="progressFill" class="progress-fill"></div></div><div class="row-space stats-line"><span><strong id="correctCount">0</strong> / 49 found</span><span><strong id="roundPoints">0</strong> this shift</span></div></div>
+  <div id="missingChallenge" class="missing-challenge" hidden>
+   <div class="missing-badge">🔍 VISUAL MANAGEMENT CHALLENGE</div>
+   <h3>One number is missing.</h3>
+   <p>Look for the missing number from <b>1 to 49</b>. Enter your answer below. Fastest correct answer wins this round.</p>
+   <form id="guessForm" class="guess-form"><label for="guessInput">MISSING NUMBER</label><div class="guess-row"><input id="guessInput" type="number" min="1" max="49" step="1" inputmode="numeric" pattern="[0-9]*" placeholder="1–49" required/><button id="guessBtn" class="btn btn-primary" type="submit">SUBMIT →</button></div></form>
+   <div id="guessFeedback" class="guess-feedback" role="status">Clock starts when the board appears. Wrong guesses have a short cooldown.</div>
+  </div>
+  <div class="board-instructions" id="boardInstructions">Find and cross off numbers <b>1 to 49</b> in order!</div>
   <div id="gameBoard" class="number-board cluttered"></div>
   <div id="gameOverlay" class="game-overlay" hidden><div class="countdown-label">GET READY</div><div id="countdownNumber" class="countdown-number">3</div><div class="countdown-note">All players start together!</div></div>
-  <p id="tapFeedback" class="tap-feedback">Wrong number? −2 pts. Keep going!</p>
+  <p id="tapFeedback" class="tap-feedback">Only the next number counts. No penalties.</p>
  </section>
  <section id="resultsScreen" class="screen" hidden>
   <div class="results-medal" id="resultsMedal">🏆</div><div class="eyebrow center" id="resultEyebrow">ROUND COMPLETE</div><h1 class="center" id="resultHeadline">GREAT WORK!</h1>
-  <div class="results-summary"><div><span>YOUR RANK</span><strong id="myRank">#1</strong></div><div><span>THIS ROUND</span><strong id="myRoundPoints">0</strong></div><div><span>TOTAL XP</span><strong id="myTotalPoints">0</strong></div></div>
-  <div class="mini-league"><h3>🏅 TOP PLAYERS</h3><div id="miniLeaderboard"></div></div>
+  <div class="results-summary" id="resultsSummary"><div><span>YOUR RANK</span><strong id="myRank">#1</strong></div><div><span>THIS SHIFT</span><strong id="myRoundPoints">0</strong></div><div><span>4-SHIFT TOTAL</span><strong id="myTotalPoints">0</strong></div></div>
+  <div class="team-result" id="shiftTeamResult"><div class="eyebrow">TEAM SCORE (LOWEST INDIVIDUAL)</div><strong id="myTeamScore">—</strong><span> / 49 numbers</span></div><div id="missingResult" class="team-result" hidden><div class="eyebrow" id="missingCompareTitle">FINDING TIME</div><strong id="missingCompareTime">—</strong><span id="missingCompareNote">seconds</span></div><div class="mini-league"><h3 id="playersTitle">🏅 TOP PLAYERS</h3><div id="miniLeaderboard"></div></div>
   <div class="waiting-card"><span>⏳</span><div><strong id="nextPrompt">Waiting for next round</strong><div class="muted">Watch the big screen for the standings!</div></div></div>
  </section>
  <section id="errorScreen" class="screen" hidden><div class="join-illustration">⚠️</div><h1 class="center">CAN'T CONNECT</h1><p id="errorMessage" class="center muted">This room is unavailable. Ask your host for a new QR code.</p><a class="btn btn-secondary full" href="/">Back to home</a></section>

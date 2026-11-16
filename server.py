@@ -11,6 +11,7 @@ import random
 import re
 import secrets
 import time
+from statistics import median
 from typing import Any
 
 import qrcode
@@ -23,10 +24,14 @@ app = FastAPI(title="5S Speedrun", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=ROOT / "public"), name="static")
 
 ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-ROUND_LENGTH_MS = 30_000
+ROUND_LENGTH_MS = 20_000
+MISSING_ROUND_MS = 120_000  # 6 "shifts" at 20 seconds; host may end earlier.
 COUNTDOWN_MS = 4_000
 MAX_PLAYERS = 180
-ROUND_NAMES = ["BEFORE 5S", "SORT", "SET IN ORDER", "STANDARDIZE"]
+ROUND_NAMES = ["BEFORE 5S", "SORT", "STRAIGHTEN + SWEEP", "STANDARDIZE",
+               "MISSING NUMBER · BEFORE 5S", "MISSING NUMBER · AFTER 5S"]
+TARGET_MAX = 49
+DISTRACTOR_MAX = 90
 
 
 def now_ms() -> int:
@@ -41,14 +46,15 @@ class Player:
     round_correct: int = 0
     round_misses: int = 0
     next_expected: int = 1
-    round_bonus: int = 0
     completed_at: int | None = None
     last_tap: int = 0
     eligible: bool = True
     history: list[dict[str, int]] = field(default_factory=list)
+    missing_times: dict[int, int] = field(default_factory=dict)
 
     def round_points(self) -> int:
-        return max(0, self.round_correct * 10 - self.round_misses * 2 + self.round_bonus)
+        # The source game scores each crossed-off number, without XP bonuses/penalties.
+        return self.round_correct
 
 
 @dataclass
@@ -61,6 +67,10 @@ class Room:
     stage: str = "lobby"
     round_index: int = -1
     board: list[int] = field(default_factory=list)
+    original_board: list[int] = field(default_factory=list)
+    team_scores: list[int] = field(default_factory=list)
+    missing_answers: list[int] = field(default_factory=list)
+    missing_results: list[dict[str, Any]] = field(default_factory=list)
     start_at: int = 0
     end_at: int = 0
     pre_ranks: dict[str, int] = field(default_factory=dict)
@@ -68,9 +78,11 @@ class Room:
     round_task: asyncio.Task | None = None
 
     def ranked(self, with_round: bool = True) -> list[dict[str, Any]]:
+        missing = self.round_index >= 4 and self.stage in ("countdown", "active", "results", "final")
         data = []
         for player in self.players.values():
-            current = player.round_points() if (with_round and self.stage in ("countdown", "active")) else 0
+            current = player.round_points() if (with_round and self.stage in ("countdown", "active") and not missing) else 0
+            found_ms = player.missing_times.get(self.round_index) if missing else None
             data.append({
                 "id": player.client_id,
                 "name": player.name,
@@ -79,22 +91,39 @@ class Room:
                 "correct": player.round_correct,
                 "misses": player.round_misses,
                 "completed": player.completed_at is not None,
+                "missingTimeMs": found_ms,
+                "beforeTimeMs": player.missing_times.get(4),
+                "afterTimeMs": player.missing_times.get(5),
                 "eligible": player.eligible,
                 "history": [h["points"] for h in player.history],
             })
-        data.sort(key=lambda x: (-x["total"], -x["correct"] if with_round else 0, x["misses"], x["name"].casefold()))
-        for idx, p in enumerate(data):
-            p["rank"] = idx + 1
+        if missing:
+            data.sort(key=lambda x: (x["missingTimeMs"] is None, x["missingTimeMs"] if x["missingTimeMs"] is not None else 99999999, x["name"].casefold()))
+        else:
+            data.sort(key=lambda x: (-x["total"], -x["correct"] if with_round else 0, x["name"].casefold()))
+        for idx, item in enumerate(data):
+            item["rank"] = idx + 1
         return data
 
     def snapshot(self, role: str, player_id: str | None) -> dict[str, Any]:
+        active_players = [p for p in self.players.values() if p.eligible]
+        if self.stage in ("countdown", "active"):
+            team_score = min((p.round_correct for p in active_players), default=None)
+        elif self.stage in ("results", "final") and self.team_scores:
+            team_score = self.team_scores[-1]
+        else:
+            team_score = None
         public = {
             "type": "snapshot", "serverNow": now_ms(), "code": self.code,
             "stage": self.stage, "roundIndex": self.round_index,
             "roundName": ROUND_NAMES[self.round_index] if self.round_index >= 0 else None,
             "roundsTotal": len(ROUND_NAMES), "board": self.board,
+            "mode": "missing" if self.round_index >= 4 else "sequence",
+            "targetMax": TARGET_MAX, "teamScore": team_score,
+            "teamScores": self.team_scores, "missingResults": self.missing_results,
+            "missingAnswers": self.missing_answers if self.stage == "final" else [],
             "startAt": self.start_at, "endAt": self.end_at,
-            "lengthMs": ROUND_LENGTH_MS,
+            "lengthMs": (MISSING_ROUND_MS if self.round_index >= 4 else ROUND_LENGTH_MS),
             "playersCount": len(self.players),
             "leaderboard": self.ranked(), "results": self.results,
         }
@@ -110,6 +139,9 @@ class Room:
                     "nextExpected": p.next_expected, "roundPoints": p.round_points(),
                     "completed": p.completed_at is not None, "eligible": p.eligible,
                     "history": [h["points"] for h in p.history],
+                    "missingTimeMs": p.missing_times.get(self.round_index),
+                    "beforeTimeMs": p.missing_times.get(4),
+                    "afterTimeMs": p.missing_times.get(5),
                 }
         return public
 
@@ -202,20 +234,32 @@ async def begin_round(room: Room):
     room.results = []
     room.stage = "countdown"
     room.start_at = now_ms() + COUNTDOWN_MS
-    room.end_at = room.start_at + ROUND_LENGTH_MS
+    room.end_at = room.start_at + (MISSING_ROUND_MS if room.round_index >= 4 else ROUND_LENGTH_MS)
     if room.round_index == 0:
-        room.board = list(range(1, 50))
-        random.SystemRandom().shuffle(room.board)
-    elif room.round_index == 1:
-        room.board = list(range(1, 31))
-        random.SystemRandom().shuffle(room.board)
-    elif room.round_index == 2:
-        room.board = list(range(1, 31))
+        # Original 90-position paper layout. Retained in the next two rounds
+        # so participants experience the same workplace before/after sorting.
+        room.original_board = list(range(1, DISTRACTOR_MAX + 1))
+        random.SystemRandom().shuffle(room.original_board)
+        room.board = room.original_board.copy()
+    elif room.round_index in (1, 2):
+        # Zero is an empty space where an unnecessary number was removed.
+        # This leaves the 1-49 target numbers in their ORIGINAL locations.
+        room.board = [n if n <= TARGET_MAX else 0 for n in room.original_board]
+    elif room.round_index == 3:
+        # Paper's standardized grid: left-to-right, top-to-bottom.
+        room.board = list(range(1, TARGET_MAX + 1))
+    elif room.round_index == 4:
+        # Two different missing numbers prevent memorizing the first answer.
+        # The same original workplace is reused. Zero denotes the missing spot.
+        room.missing_answers = secrets.SystemRandom().sample(list(range(11, 45)), 2)
+        room.board = [0 if n == room.missing_answers[0] else n for n in room.original_board]
     else:
-        room.board = list(range(1, 31))
+        # Same number range (1–49), but after standardization it is easy to see
+        # exactly which position is empty in the 7×7 grid.
+        room.board = [0 if n == room.missing_answers[1] else n for n in range(1, TARGET_MAX + 1)]
     for p in room.players.values():
         p.round_correct, p.round_misses, p.next_expected = 0, 0, 1
-        p.completed_at, p.round_bonus, p.last_tap, p.eligible = None, 0, 0, True
+        p.completed_at, p.last_tap, p.eligible = None, 0, True
     await broadcast(room)
     room.round_task = asyncio.create_task(round_clock(room, room.round_index))
 
@@ -239,23 +283,52 @@ async def round_clock(room: Room, round_number: int):
 async def finish_round(room: Room):
     if room.stage not in ("countdown", "active"):
         return
-    ranked = []
-    for p in room.players.values():
-        if not p.eligible:
-            continue
-        gained = p.round_points()
-        p.points += gained
-        p.history.append({"points": gained, "correct": p.round_correct, "misses": p.round_misses})
-        ranked.append({"id": p.client_id, "name": p.name, "roundPoints": gained,
-                       "correct": p.round_correct, "misses": p.round_misses,
-                       "completed": p.completed_at is not None, "total": p.points})
-    ranked.sort(key=lambda x: (-x["total"], -x["roundPoints"], x["misses"], x["name"].casefold()))
-    for rank, p in enumerate(ranked, start=1):
-        p["rank"] = rank
-        prev = room.pre_ranks.get(p["id"])
-        p["delta"] = prev - rank if prev is not None else None
-    room.results = ranked
+    if room.round_index >= 4:
+        # A separate visual-management challenge: rank by quickest correct find,
+        # not by the first four shifts' scores.
+        ranked = []
+        for p in room.players.values():
+            if not p.eligible:
+                continue
+            found_ms = p.missing_times.get(room.round_index)
+            ranked.append({"id": p.client_id, "name": p.name, "total": p.points,
+                           "roundPoints": 0, "missingTimeMs": found_ms,
+                           "beforeTimeMs": p.missing_times.get(4),
+                           "afterTimeMs": p.missing_times.get(5),
+                           "found": found_ms is not None, "misses": p.round_misses})
+        ranked.sort(key=lambda x: (x["missingTimeMs"] is None,
+                                   x["missingTimeMs"] if x["missingTimeMs"] is not None else 99999999,
+                                   x["name"].casefold()))
+        for rank, player_result in enumerate(ranked, 1):
+            player_result["rank"] = rank
+        times = [p["missingTimeMs"] for p in ranked if p["missingTimeMs"] is not None]
+        room.missing_results.append({"roundIndex": room.round_index,
+                                     "found": len(times), "players": len(ranked),
+                                     "medianMs": round(median(times)) if times else None,
+                                     "slowestMs": max(times) if times else None})
+        room.results = ranked
+    else:
+        ranked = []
+        for p in room.players.values():
+            if not p.eligible:
+                continue
+            gained = p.round_points()
+            p.points += gained
+            p.history.append({"points": gained, "correct": p.round_correct, "misses": p.round_misses})
+            ranked.append({"id": p.client_id, "name": p.name, "roundPoints": gained,
+                           "correct": p.round_correct, "misses": p.round_misses,
+                           "completed": p.completed_at is not None, "total": p.points})
+        ranked.sort(key=lambda x: (-x["total"], -x["roundPoints"], x["name"].casefold()))
+        for rank, player_result in enumerate(ranked, start=1):
+            player_result["rank"] = rank
+            prev = room.pre_ranks.get(player_result["id"])
+            player_result["delta"] = prev - rank if prev is not None else None
+        room.results = ranked
+        # Team score = lowest individual numbers crossed off, as in the PDF.
+        room.team_scores.append(min((p["roundPoints"] for p in ranked), default=0))
     room.stage = "final" if room.round_index == len(ROUND_NAMES) - 1 else "results"
+    if room.round_index >= 4:
+        room.end_at = max(room.start_at, now_ms())  # Actual elapsed challenge duration.
     if room.round_task is not None and room.round_task is not asyncio.current_task():
         room.round_task.cancel()
     await broadcast(room)
@@ -265,20 +338,25 @@ async def reset_room(room: Room):
     if room.round_task and not room.round_task.done():
         room.round_task.cancel()
     room.stage, room.round_index, room.board = "lobby", -1, []
+    room.original_board = []
+    room.team_scores = []
+    room.missing_answers = []
+    room.missing_results = []
     room.start_at = room.end_at = 0
     room.pre_ranks, room.results = {}, []
     for p in room.players.values():
-        p.points = p.round_correct = p.round_misses = p.round_bonus = p.last_tap = 0
+        p.points = p.round_correct = p.round_misses = p.last_tap = 0
         p.next_expected = 1
         p.completed_at = None
         p.eligible = True
         p.history = []
+        p.missing_times = {}
     await broadcast(room)
 
 
 async def handle_tap(room: Room, ws: WebSocket, player_id: str, value: Any):
     p = room.players.get(player_id)
-    if not p or not p.eligible or room.stage != "active" or p.completed_at is not None:
+    if not p or not p.eligible or room.stage != "active" or p.completed_at is not None or room.round_index >= 4:
         return
     stamp = now_ms()
     if stamp < room.start_at or stamp > room.end_at:
@@ -286,21 +364,51 @@ async def handle_tap(room: Room, ws: WebSocket, player_id: str, value: Any):
     if stamp - p.last_tap < 80:
         return
     p.last_tap = stamp
-    if type(value) is not int or not 1 <= value <= 49 or value not in room.board:
+    if type(value) is not int or not 1 <= value <= DISTRACTOR_MAX or value not in room.board:
         return
     correct = value == p.next_expected
     if correct:
         p.round_correct += 1
         p.next_expected += 1
-        if p.next_expected == 31:
+        if p.next_expected == TARGET_MAX + 1:
             p.completed_at = stamp
-            p.round_bonus = max(0, ((room.end_at - stamp) // 1000) * 3)
     else:
         p.round_misses += 1
     await send(ws, {"type": "tap_result", "correct": correct, "value": value,
                     "nextExpected": p.next_expected, "roundPoints": p.round_points(),
                     "correctCount": p.round_correct, "misses": p.round_misses,
                     "completed": p.completed_at is not None})
+
+
+async def handle_guess(room: Room, ws: WebSocket, player_id: str, value: Any):
+    """Find one missing number; time-to-discovery is separate from shift XP."""
+    p = room.players.get(player_id)
+    if (not p or room.round_index not in (4, 5) or room.stage != "active"
+            or not p.eligible or p.completed_at is not None):
+        return
+    stamp = now_ms()
+    if stamp < room.start_at or stamp > room.end_at:
+        return
+    # Prevent blind rapid-fire guesses (one guess per ~2.5 seconds).
+    if stamp - p.last_tap < 2500:
+        await send(ws, {"type": "guess_result", "correct": False, "cooldown": True})
+        return
+    if type(value) is not int or not 1 <= value <= TARGET_MAX:
+        return
+    p.last_tap = stamp
+    correct = value == room.missing_answers[room.round_index - 4]
+    if correct:
+        p.completed_at = stamp
+        p.round_correct = 1
+        p.missing_times[room.round_index] = stamp - room.start_at
+    else:
+        p.round_misses += 1
+    await send(ws, {"type": "guess_result", "correct": correct,
+                    "foundTimeMs": p.missing_times.get(room.round_index),
+                    "attempts": p.round_misses + (1 if correct else 0)})
+    await broadcast(room)
+    if correct and all(x.completed_at is not None for x in room.players.values() if x.eligible):
+        await finish_round(room)
 
 
 @app.websocket("/ws/{code}")
@@ -338,7 +446,7 @@ async def websocket_endpoint(ws: WebSocket, code: str):
                         await send(ws, {"type": "error", "message": "This room is full."})
                         continue
                     if client_id not in room.players:
-                        eligible = room.stage not in ("active",)
+                        eligible = room.stage in ("lobby", "results")
                         room.players[client_id] = Player(client_id=client_id, name=name, eligible=eligible)
                     else:
                         room.players[client_id].name = name
@@ -361,6 +469,8 @@ async def websocket_endpoint(ws: WebSocket, code: str):
                     await reset_room(room)
             elif role == "player" and msg_type == "tap":
                 await handle_tap(room, ws, player_id or "", message.get("value"))
+            elif role == "player" and msg_type == "guess":
+                await handle_guess(room, ws, player_id or "", message.get("value"))
     except (WebSocketDisconnect, RuntimeError, ValueError):
         pass
     finally:

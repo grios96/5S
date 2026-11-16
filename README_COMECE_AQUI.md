@@ -1,91 +1,69 @@
-# 5S SPEEDRUN — jogo multiplayer com ranking ao vivo
+# 5S Speedrun — 6 rounds + QR code + ranking ao vivo
 
-**Pronto para publicar, mas ainda não publicado.** O código já contém servidor, interface do apresentador, interface dos participantes, QR code automático, três rodadas sincronizadas e ranking. O endereço público só passa a existir quando você publicar o projeto ou executar o servidor na rede local.
+Versão baseada no exercício [The 5S Numbers Game (Wine Australia)](https://www.wineaustralia.com/getmedia/e2d39043-bde1-4ff3-86c6-06ac8b84a74c/2016_Lean-production-5s-numbers-game.pdf), com duas etapas adicionais de **Visual Management — Find the Missing Number**.
 
-## Como funciona na fábrica
+## Roteiro das seis etapas
 
-1. O apresentador abre o site e clica **Create live room**.
-2. Aparece um painel de controle com um **QR code novo para aquela sala**, a quantidade de participantes e um ranking no telão.
-3. Os funcionários escaneiam o QR com a câmera, digitam seu nome e entram sem criar conta.
-4. Quando todos estiverem prontos, clique **Start round 1**. Todos verão uma contagem regressiva de 4 segundos e terão 30 segundos para tocar nos números de **1 a 30, em ordem**.
-5. Terminados os 30 segundos, o telão apresenta os resultados automaticamente. Clique **Start round 2** e depois **Start round 3**. O painel mostra os três primeiros, pontuação acumulada e mudanças de posição.
-6. Clique **Reset all scores** somente para iniciar outra turma. Os participantes continuam conectados, mas os pontos são zerados.
+| Etapa | Desafio | Tempo | Resultado |
+|---|---|---:|---|
+| 1 — Before 5S | Marcar 1–49 em sequência num ambiente com 90 números e fontes, cores, tamanhos e ângulos diferentes | 20s | Números corretos |
+| 2 — Sort | Remover números 50–90, mantendo os números 1–49 nos mesmos lugares | 20s | Números corretos |
+| 3 — Straighten + Sweep | Criar zonas visuais 3×3 e usar uma cor só | 20s | Números corretos |
+| 4 — Standardize | Tabuleiro organizado em sequência | 20s | Números corretos |
+| 5 — Missing Number · Before 5S | Um número de 1–49 foi removido do tabuleiro original, ainda misturado com 50–90. Identificar digitando qual falta | Até 120s | Tempo de identificação |
+| 6 — Missing Number · After 5S | Outro número (diferente do anterior) foi removido de uma grade padronizada. Identificá-lo | Até 120s | Tempo de identificação |
 
-### As 3 rodadas
+**Regras das quatro primeiras etapas:** 1 ponto por número correto marcado em sequência. Não há penalidade por erro nem bônus por velocidade. O placar coletivo é a **menor pontuação individual da etapa**, como no exemplo de papel. O acumulado individual dos quatro turnos permanece no ranking.
 
-| Rodada | Condição | Tabuleiro |
-|---|---|---|
-| 1: BEFORE 5S | Bagunça + objetos desnecessários | Números 1–49 misturados; tarefa = clicar 1–30 |
-| 2: SORT | Remover o desnecessário | Apenas números 1–30, ainda misturados |
-| 3: SET IN ORDER | Lugar definido para cada item | Apenas 1–30, ordenados visualmente |
+**Regras das etapas 5 e 6:** cada participante digita seu palpite de 1 a 49. Os dois números faltantes são diferentes, evitando que a etapa final vire um exercício de memória. O relógio conta **para cima** e indica quantos turnos de 20 segundos se passaram. Quando todos acertam, a rodada encerra automaticamente; o apresentador também pode encerrar manualmente, e existe um limite de dois minutos. Tentativas incorretas têm um intervalo de aproximadamente 2,5 segundos, para evitar chutes repetidos. O tempo de acerto é registrado por participante; quem não acertar aparece como **Not found**. O ranking das etapas extras usa o menor tempo, e **não altera** a pontuação das quatro primeiras etapas. O telão apresenta a quantidade de pessoas que acertou e a mediana do tempo **somente entre os que acertaram**, para comparar antes/depois. Os números faltantes só são revelados no resultado final.
 
-Pontuação: **+10 XP por número correto**, **−2 XP por clique errado**, e bônus de **3 XP por segundo inteiro restante** se completar os 30 antes do tempo. O placar é calculado pelo servidor, não pelo celular.
+Os tabuleiros simulam um ambiente de trabalho; celulares têm telas e tamanhos diferentes, portanto a comparação é **didática, não uma medida científica** de produtividade.
 
-**Nota didática:** as rodadas ilustram Sort e Set in Order. Reserve os slides finais para Shine, Standardize e Sustain; o jogo não é uma medição científica de produtividade.
+## Instalar no Render (se o projeto já está publicado)
 
-## Opção A — publicar no Render (recomendada se os funcionários usam redes diferentes)
+1. Descompacte este ZIP.
+2. Substitua no repositório GitHub o arquivo `server.py` e **todos os arquivos da pasta `public/`**, preservando a estrutura de diretórios. É importante enviar `public/` inteira, não apenas `server.py`.
+3. Faça o commit no GitHub.
+4. No Render, abra o Web Service existente e selecione **Manual Deploy → Deploy latest commit**, caso o deploy não inicie automaticamente.
+5. Abra o endereço `https://...onrender.com`, crie **uma nova sala** e teste com dois celulares. Salas anteriores não sobrevivem a um novo deploy, pois o estado fica na memória.
+6. Se o navegador continuar mostrando uma tela antiga, atualize a página com recarregamento forçado (Ctrl+Shift+R) ou use uma aba anônima.
 
-**Requer conta GitHub e conta Render (gratuitas para testes).** O servidor usa WebSockets, não basta uma hospedagem de páginas estáticas.
+### Configuração do serviço (se precisar conferir)
 
-1. Descompacte o ZIP deste projeto.
-2. Crie um **repositório GitHub** e envie os **arquivos da pasta**, mantendo `server.py`, `requirements.txt`, `render.yaml` e a pasta `public/` na raiz. Você pode usar o botão **Add file > Upload files** do GitHub ou Git.
-3. Acesse **https://dashboard.render.com/** → **New** → **Web Service**, conecte o repositório, selecione Python e plano **Free**, se disponível.
-4. Defina **Build Command** = `pip install -r requirements.txt` e **Start Command** = `uvicorn server:app --host 0.0.0.0 --port $PORT`.
-5. Publique. Quando aparecer um endereço `https://...onrender.com`, abra esse endereço no computador da apresentação e clique **Create live room**.
-6. O QR code do painel já conterá a URL correta; qualquer celular com Internet poderá participar. Faça uma rodada de teste com dois celulares.
+- Service Type: `Web Service`, linguagem Python
+- Root Directory: em branco se `server.py` está na raiz
+- Build Command: `pip install -r requirements.txt`
+- Start Command: `uvicorn server:app --host 0.0.0.0 --port $PORT`
+- Python: 3.13.5 via `.python-version`, com `render.yaml` como configuração opcional
 
-> Alternativa: em Render, **New → Blueprint** pode reconhecer o arquivo `render.yaml` e preencher os comandos automaticamente.
+O jogo usa FastAPI e WebSockets, portanto não funciona como um *Static Site*.
 
-**Cuidados com o plano gratuito:** uma instância inativa pode hibernar após 15 minutos e levar algum tempo para voltar. Não crie a sala horas antes: abra o jogo perto da apresentação e mantenha a tela de host conectada. O estado da sala e os pontos ficam **na memória do servidor**; reinicialização, novo deploy ou suspensão podem apagar a partida. Acesse o site e faça testes **antes** de o pessoal chegar. Considere um plano pago ou outra infraestrutura caso precisão e disponibilidade sejam críticas. 
+## Como apresentar
 
-## Opção B — rodar em uma rede Wi-Fi local (sem publicar no Render)
+1. No notebook ligado ao projetor, entre no site e selecione **Create live room**. O QR aparece automaticamente.
+2. Cada funcionário escaneia o QR e digita um nome no celular. Não precisa instalar nada.
+3. Clique em **Start round 1**; todas as pessoas começam simultaneamente após a contagem regressiva. Ao término, discuta o resultado coletivo e clique no botão para a próxima rodada.
+4. Depois da quarta rodada, explique *Visual Management* e inicie **Missing Number — Before 5S**. Os jogadores deverão observar o tabuleiro e escrever qual número de 1–49 não está presente.
+5. Faça o mesmo no **Missing Number — After 5S** com a grade organizada; depois compare os tempos no ranking e as medianas.
+6. Use **Reset all scores** para outra turma; os mesmos jogadores podem permanecer conectados. Para uma nova sessão completamente isolada, crie outra sala pelo início.
 
-Necessário: computador com **Python 3.10+**, e acesso ao mesmo Wi-Fi, sem isolamento entre dispositivos. Não depende da Internet **depois** que as bibliotecas Python estiverem instaladas; funciona via rede local.
+**Atenção ao Render gratuito:** o serviço pode entrar em suspensão por inatividade; reiniciar ou fazer deploy também apaga as salas ativas. Abra o jogo pouco antes da palestra e teste o QR no Wi-Fi da fábrica.
 
-**Windows:** dê dois cliques em `iniciar_no_windows.bat` ou abra o terminal na pasta:
+## Execução local e testes
 
-```powershell
-py -m pip install -r requirements.txt
-py -m uvicorn server:app --host 0.0.0.0 --port 8000
+No Windows: execute `iniciar_no_windows.bat`. Em Mac/Linux, use `iniciar_no_mac_linux.sh`; ou execute manualmente:
+
+```bash
+python -m pip install -r requirements.txt
+uvicorn server:app --host 0.0.0.0 --port 8000
 ```
 
-**macOS/Linux:** execute `./iniciar_no_mac_linux.sh` (ou use `python3` com os comandos correspondentes).
+Para usar pela rede Wi-Fi local, abra `http://<IP-do-notebook>:8000` (não `localhost`), com os celulares na mesma rede e sem isolamento de clientes. Pode ser necessário liberar a porta TCP 8000 no firewall.
 
-Depois, obtenha o IP local do computador (`ipconfig` no Windows; procure IPv4, por exemplo `192.168.1.50`). **Abra no computador a URL `http://192.168.1.50:8000`, e NÃO `http://localhost:8000`**. O QR que aparece será acessível aos telefones da mesma rede. Se já abriu com `localhost`, no painel existe **Joining from a different Wi-Fi / LAN?** para trocar o endereço-base do QR.
+Para executar os testes automatizados:
 
-Se os telefones não conseguirem abrir: teste com o navegador de um celular, confira se todos estão na mesma rede, se o Wi-Fi permite acesso entre aparelhos e se o firewall do computador permite a porta TCP 8000. Um Wi-Fi corporativo com isolamento de convidados pode bloquear acesso LAN. Nesse caso, use a opção Render.
+```bash
+python -m unittest discover -s test -v
+```
 
-## Checklist para amanhã
-
-- [ ] Publicar ou iniciar o servidor **antes da palestra**.
-- [ ] Abrir a página no notebook, clicar **Create live room** e projetar o painel.
-- [ ] Escanear QR com **dois celulares reais** e confirmar que os nomes aparecem no painel.
-- [ ] Clicar **Start round 1** e verificar que ambos começam sincronizados.
-- [ ] Conferir se os pontos sobem e se o ranking aparece ao final dos 30 segundos.
-- [ ] Testar a apresentação PowerPoint atualizada. **O slide 8 NÃO contém um QR fixo**; o QR é exibido pelo painel do jogo.
-- [ ] Se fizer um teste completo antes, clicar **Reset all scores** e confirmar que os participantes ficam zerados.
-- [ ] Deixar os PDFs de backup impressos se a internet ou o Wi-Fi não for confiável.
-
-## Arquivos e manutenção
-
-- `server.py` — backend em FastAPI e WebSockets (pontuação validada no servidor).
-- `public/index.html` — criar sala.
-- `public/host.html` + `host.js` — painel do projetor com ranking e QR.
-- `public/play.html` + `play.js` — jogo no celular.
-- `public/styles.css` — visual original com ranking, pódio e progresso.
-- `render.yaml` — configuração opcional de deploy.
-- `test/test_game.py` — testes automatizados; rode `python -m unittest discover -s test -v`.
-
-**Não são coletados e-mails, senhas, localização nem dados pessoais além do nome digitado para o placar.** Os nomes e os resultados ficam somente na memória do servidor durante a sessão.
-
-## Render: diagnóstico de deploy (atualizado)
-
-**Para evitar problemas com mudanças de versão do Python no Render,** este pacote define Python 3.13.5 nos arquivos `.python-version` e `render.yaml`.
-
-- O serviço deve ser `Web Service`, não `Static Site`, com runtime `Python 3`.
-- Se você enviou todos os arquivos da pasta diretamente para o repositório GitHub, deixe `Root Directory` em branco.
-- Se criou uma subpasta para os arquivos, configure `Root Directory` com o nome da subpasta.
-- Use `pip install -r requirements.txt` e `uvicorn server:app --host 0.0.0.0 --port $PORT`.
-- Se o serviço já existe, em **Environment** defina `PYTHON_VERSION=3.13.5`, depois execute um novo deploy (preferencialmente **Clear build cache & deploy** se houver incompatibilidades em bibliotecas).
-- Se falhar, vá em **Deploys → deploy com erro → Logs** e leia as últimas 20–30 linhas. `Could not open requirements file` normalmente significa pasta/raiz errada; `Could not import module "server"` normalmente indica caminho ou arquivo `server.py` incorreto; `Port scan timeout reached` indica falha ao iniciar ou escutar na porta correta.
-- Para diagnosticar o erro específico, compartilhe as últimas linhas do log e/ou uma captura de tela, sem tokens ou segredos.
+O servidor não requer contas dos participantes. Nomes e pontuações permanecem na memória durante a sessão, sem persistência externa.
