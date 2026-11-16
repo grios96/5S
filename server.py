@@ -241,20 +241,32 @@ async def begin_round(room: Room):
         room.original_board = list(range(1, DISTRACTOR_MAX + 1))
         random.SystemRandom().shuffle(room.original_board)
         room.board = room.original_board.copy()
-    elif room.round_index in (1, 2):
+    elif room.round_index == 1:
         # Zero is an empty space where an unnecessary number was removed.
         # This leaves the 1-49 target numbers in their ORIGINAL locations.
         room.board = [n if n <= TARGET_MAX else 0 for n in room.original_board]
+    elif room.round_index == 2:
+        # Straighten + Sweep: each number gets its own box, and consecutive
+        # numbers sit in neighboring boxes along a snake-like path.
+        serpentine = []
+        current = 1
+        for row in range(7):
+            row_vals = list(range(current, current + 7))
+            if row % 2 == 1:
+                row_vals.reverse()
+            serpentine.extend(row_vals)
+            current += 7
+        room.board = serpentine
     elif room.round_index == 3:
         # Paper's standardized grid: left-to-right, top-to-bottom.
         room.board = list(range(1, TARGET_MAX + 1))
     elif room.round_index == 4:
-        # Two different missing numbers prevent memorizing the first answer.
-        # The same original workplace is reused. Zero denotes the missing spot.
-        room.missing_answers = secrets.SystemRandom().sample(list(range(11, 45)), 2)
+        # Use the SAME missing number before and after 5S so the comparison is direct.
+        missing_number = secrets.choice(list(range(11, 45)))
+        room.missing_answers = [missing_number, missing_number]
         room.board = [0 if n == room.missing_answers[0] else n for n in room.original_board]
     else:
-        # Same number range (1–49), but after standardization it is easy to see
+        # Same missing number, but now after standardization it is much easier to see
         # exactly which position is empty in the 7×7 grid.
         room.board = [0 if n == room.missing_answers[1] else n for n in range(1, TARGET_MAX + 1)]
     for p in room.players.values():

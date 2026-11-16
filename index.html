@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="theme-color" content="#101c31"/>
+  <title>5S SPEEDRUN — Live Factory Game</title>
+  <link rel="stylesheet" href="/static/styles.css"/>
+</head>
+<body class="landing-body">
+  <main class="landing-wrap">
+    <div class="brandline"><span class="logo-mark">5S</span><span>LEAN LAB <b>LIVE</b></span></div>
+    <section class="landing-hero">
+      <div class="eyebrow"><span class="live-dot"></span> THE INTERACTIVE FACTORY CHALLENGE</div>
+      <h1>LESS CHAOS.<br/><em>MORE FLOW.</em></h1>
+      <p>Four 20-second shifts, plus two missing-number challenges. One live leaderboard. A phone-friendly 5S game for your team.</p>
+      <div class="landing-actions">
+        <button id="createRoom" class="btn btn-primary btn-xl">⚡ Create live room <span aria-hidden="true">→</span></button>
+      </div>
+      <p class="subtle tiny" id="landingStatus">You are the host. Participants join by QR code — no accounts or app installs.</p>
+    </section>
+    <div class="three-cards four-cards">
+      <article><span class="round-pill purple">01</span><h3>BEFORE 5S</h3><p>90 mixed numbers. Find 1 to 49.</p></article>
+      <article><span class="round-pill yellow">02</span><h3>SORT</h3><p>Remove 50–90. Keep the positions.</p></article>
+      <article><span class="round-pill green">03</span><h3>STRAIGHTEN + SWEEP</h3><p>3×3 visual racking. Uniform color.</p></article>
+      <article><span class="round-pill purple">04</span><h3>STANDARDIZE</h3><p>One consistent sequential grid.</p></article>
+      <article><span class="round-pill yellow">05</span><h3>MISSING · BEFORE</h3><p>Find what is missing in the original clutter.</p></article>
+      <article><span class="round-pill green">06</span><h3>MISSING · AFTER</h3><p>Find the missing number after 5S.</p></article>
+    </div>
+    <p class="footer-note">Adapted from Wine Australia's 5S Numbers Game. Team score = lowest individual result in each 20-second shift. Then compare missing-number detection times before and after 5S.</p>
+  </main>
+<script>
+  document.getElementById('createRoom').addEventListener('click', async () => {
+    const b=document.getElementById('createRoom'), status=document.getElementById('landingStatus');
+    b.disabled=true; b.textContent='Creating room…';
+    try {
+      const r=await fetch('/api/rooms',{method:'POST'});
+      if(!r.ok)throw new Error('Could not create room');
+      const data=await r.json();
+      sessionStorage.setItem('hostToken:'+data.code,data.token);
+      location.assign('/host/'+data.code+'#token='+encodeURIComponent(data.token));
+    } catch(e) {status.textContent='Could not create a room. Check the server and try again.';b.disabled=false;b.innerHTML='⚡ Try again →';}
+  });
+</script></body></html>
