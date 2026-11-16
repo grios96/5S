@@ -27,16 +27,22 @@ body{color:var(--ink);background:var(--bg)}h1,h2,h3,p{margin-top:0}h1,h2,h3{lett
 .history-pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
 .history-pills .mini-pill{background:#d8f2e0;color:#285c3c}
 .number-board.paper-mess,.number-board.paper-sort{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(9,auto);gap:0;background:white;padding:8px 5px;border:1px solid #dfe5e9;border-radius:6px;overflow:hidden;position:relative}
-.number-board.paper-rack{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;background:white;padding:8px;border:1px solid #cfd8df;border-radius:6px;overflow:hidden;position:relative}
+.number-board.paper-rack{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));grid-template-rows:repeat(9,minmax(0,1fr));gap:0;background:white;padding:2px;border:1px solid #cfd8df;border-radius:6px;overflow:hidden;position:relative;aspect-ratio:1/1}
 .number-board.paper-standard{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:0;background:white;padding:8px 5px;border:1px solid #cbd6df;border-radius:4px;overflow:hidden;position:relative}
 .number-board.paper-rack{background-color:white}
+/* Four indigo separators form NINE large sections, each with scattered digits. */
+.number-board.paper-rack::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;
+ background:linear-gradient(#233a93,#233a93) 33.333% 0/3px 100% no-repeat,
+            linear-gradient(#233a93,#233a93) 66.667% 0/3px 100% no-repeat,
+            linear-gradient(#233a93,#233a93) 0 33.333%/100% 3px no-repeat,
+            linear-gradient(#233a93,#233a93) 0 66.667%/100% 3px no-repeat}
 .number-board.paper-mess .number-tile,.number-board.paper-sort .number-tile,.number-board.paper-rack .number-tile,.number-board.paper-standard .number-tile,.number-board .number-gap{aspect-ratio:1/1;min-height:0;height:auto;display:grid;place-items:center;overflow:visible;position:relative;min-width:0;padding:0;transform:none;background:transparent;border:0;border-radius:0;box-shadow:none;opacity:1;touch-action:manipulation}
 .number-board .number-gap{pointer-events:none}
 .number-board .number-tile:not(:disabled):active{background:#d7f4e1;transform:none;outline:2px solid #58c37d;border:0}
 .number-board .number-tile:focus-visible{outline:2px solid #47b879;outline-offset:-2px}
 .number-board .number-tile .number-ink{display:block;line-height:1;white-space:nowrap;transform:rotate(var(--ink-rotate,0deg)) scale(var(--ink-scale,1));font-size:clamp(12px,3.4vw,27px);font-weight:700;pointer-events:none;transition:color .15s,opacity .15s}
-.number-board.paper-rack .number-tile{border:1px solid #c8d2da;background:#fbfcfe}
-.number-board.paper-rack .number-tile .number-ink{color:#161616!important;transform:rotate(0deg) scale(1)!important}
+.number-board.paper-rack .number-tile{border:0;background:transparent;position:relative;z-index:1}
+.number-board.paper-rack .number-tile .number-ink{color:#161616!important;font-size:clamp(15px,4vw,24px);transform:rotate(var(--ink-rotate,0deg)) scale(var(--ink-scale,1))!important}
 .number-board.paper-standard .number-tile{border:1px solid #c5cdd5;overflow:hidden}
 .number-board.paper-standard .number-tile .number-ink{transform:rotate(0deg) scale(var(--ink-scale,1));color:#121212!important}
 .number-board .number-tile.done,.number-board .number-tile.done:disabled{background:#e7f5ec!important;color:#273c32!important;border:0!important;opacity:1!important;transform:none!important}

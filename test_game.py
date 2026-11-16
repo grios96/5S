@@ -59,15 +59,16 @@ class GameTests(unittest.TestCase):
                                 self.assertEqual([x for x in start['board'] if x], [x for x in original if x<=49])
                                 self.assertTrue(all((x == 0) if original[i] > 49 else (x==original[i]) for i,x in enumerate(start['board'])))
                             elif r == 2:
-                                serpentine=[]
-                                current=1
-                                for row in range(7):
-                                    row_vals=list(range(current,current+7))
-                                    if row % 2 == 1:
-                                        row_vals.reverse()
-                                    serpentine.extend(row_vals)
-                                    current += 7
-                                self.assertEqual(start['board'],serpentine)
+                                board = start['board']
+                                self.assertEqual(len(board),81)
+                                self.assertEqual(board.count(0),32)
+                                self.assertEqual(sorted(n for n in board if n), list(range(1,50)))
+                                position = {n: divmod(i, 9) for i,n in enumerate(board) if n}
+                                for n in range(1,49):
+                                    r1,c1 = position[n]
+                                    r2,c2 = position[n+1]
+                                    # Adjacent LARGE sections, not adjacent number tiles.
+                                    self.assertEqual(abs(r1//3-r2//3)+abs(c1//3-c2//3),1)
                             else:
                                 self.assertEqual(start['board'],list(range(1,50)))
                             self.get_until(p1,lambda m:m.get('type')=='snapshot' and m['stage']=='active' and m['roundIndex']==r)
@@ -151,6 +152,18 @@ class GameTests(unittest.TestCase):
                                 self.assertIsNotNone(result['me']['afterTimeMs'])
                         self.assertEqual(room.round_index,5)
                         self.assertEqual(room.stage,'final')
+
+    def test_neighboring_sections_many_layouts(self):
+        for _ in range(200):
+            board=server.make_neighboring_sections_board()
+            self.assertEqual(len(board),81)
+            self.assertEqual(board.count(0),32)
+            self.assertEqual(sorted(x for x in board if x),list(range(1,50)))
+            pos={x:divmod(i,9) for i,x in enumerate(board) if x}
+            for n in range(1,49):
+                r1,c1=pos[n]
+                r2,c2=pos[n+1]
+                self.assertEqual(abs(r1//3-r2//3)+abs(c1//3-c2//3),1)
 
     def test_reconnect_and_reset(self):
         with TestClient(server.app) as client:

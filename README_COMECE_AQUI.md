@@ -8,7 +8,7 @@ Versão baseada no exercício [The 5S Numbers Game (Wine Australia)](https://www
 |---|---|---:|---|
 | 1 — Before 5S | Marcar 1–49 em sequência num ambiente com 90 números e fontes, cores, tamanhos e ângulos diferentes | 20s | Números corretos |
 | 2 — Sort | Remover números 50–90, mantendo os números 1–49 nos mesmos lugares | 20s | Números corretos |
-| 3 — Straighten + Sweep | Criar zonas visuais 3×3 e usar uma cor só | 20s | Números corretos |
+| 3 — Straighten + Sweep | Criar 9 áreas grandes (grade 3×3), com números espalhados dentro das áreas e cada número seguinte numa área vizinha | 20s | Números corretos |
 | 4 — Standardize | Tabuleiro organizado em sequência | 20s | Números corretos |
 | 5 — Missing Number · Before 5S | Um número de 1–49 foi removido do tabuleiro original, ainda misturado com 50–90. Identificar digitando qual falta | Até 120s | Tempo de identificação |
 | 6 — Missing Number · After 5S | Outro número (diferente do anterior) foi removido de uma grade padronizada. Identificá-lo | Até 120s | Tempo de identificação |
@@ -67,3 +67,9 @@ python -m unittest discover -s test -v
 ```
 
 O servidor não requer contas dos participantes. Nomes e pontuações permanecem na memória durante a sessão, sem persistência externa.
+
+## Ajuste Round 3 — áreas vizinhas (16/11/2026)
+
+O round **3 — Straighten + Sweep** mostra nove **áreas grandes** em uma grade 3×3, separadas por linhas azuis. Os números 1–49 ficam espalhados dentro dessas áreas, com fontes, ângulos e tamanhos variados, como no jogo em papel. Cada número `N+1` fica sempre numa **área grande vizinha por um dos lados** da área onde está `N`, mas não necessariamente próximo dele dentro da área. O jogo gera uma nova distribuição por partida, idêntica para todos os participantes da sala.
+
+Os rounds 5 e 6 continuam usando exatamente **o mesmo número faltante**.

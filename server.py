@@ -146,6 +146,45 @@ class Room:
         return public
 
 
+def make_neighboring_sections_board() -> list[int]:
+    """Scatter 1..49 across a 3x3 array of LARGE sections.
+
+    Each section is itself 3x3 invisible number slots, so the displayed
+    board is 9x9 slots. Consecutive numbers must be in neighboring sections,
+    not neighboring individual number positions. A closed walk through the
+    3x3 section grid guarantees 49 placements never overfill a section.
+    """
+    rng = secrets.SystemRandom()
+    # This walk traverses each section and returns to its starting section
+    # across an adjacent boundary. Each step shares a SIDE with the next.
+    cycle = [0, 1, 2, 5, 4, 3, 6, 7, 8, 7, 6, 3, 4, 5, 2, 1]
+    offset = rng.randrange(len(cycle))
+    rotation = rng.randrange(4)
+    reflect = rng.choice([False, True])
+
+    def transform(section: int) -> int:
+        row, col = divmod(section, 3)
+        if reflect:
+            col = 2 - col
+        for _ in range(rotation):
+            row, col = col, 2 - row
+        return row * 3 + col
+
+    positions: dict[int, list[int]] = {}
+    for section in range(9):
+        sr, sc = divmod(section, 3)
+        slots = [((sr * 3 + r) * 9 + sc * 3 + c)
+                 for r in range(3) for c in range(3)]
+        rng.shuffle(slots)
+        positions[section] = slots
+
+    board = [0] * 81
+    for number in range(1, TARGET_MAX + 1):
+        section = transform(cycle[(offset + number - 1) % len(cycle)])
+        board[positions[section].pop()] = number
+    return board
+
+
 rooms: dict[str, Room] = {}
 
 
@@ -246,17 +285,10 @@ async def begin_round(room: Room):
         # This leaves the 1-49 target numbers in their ORIGINAL locations.
         room.board = [n if n <= TARGET_MAX else 0 for n in room.original_board]
     elif room.round_index == 2:
-        # Straighten + Sweep: each number gets its own box, and consecutive
-        # numbers sit in neighboring boxes along a snake-like path.
-        serpentine = []
-        current = 1
-        for row in range(7):
-            row_vals = list(range(current, current + 7))
-            if row % 2 == 1:
-                row_vals.reverse()
-            serpentine.extend(row_vals)
-            current += 7
-        room.board = serpentine
+        # Nine LARGE 3x3 sections, just like the racking lines in the paper
+        # game. Numbers are scattered inside each section; 1 -> 2 -> 3 etc.
+        # always move to a neighboring LARGE section (not neighboring tiles).
+        room.board = make_neighboring_sections_board()
     elif room.round_index == 3:
         # Paper's standardized grid: left-to-right, top-to-bottom.
         room.board = list(range(1, TARGET_MAX + 1))

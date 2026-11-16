@@ -8,7 +8,7 @@
   const ROUND_SUBS=[
     'Before 5S: 90 scattered numbers in different colors, angles, fonts and sizes.',
     'Sort: numbers 50–90 removed; all other numbers stay in place.',
-    'Straighten + Sweep: visual 3×3 zones and a single ink color.',
+    'Straighten + Sweep: 9 large sections. Each next number is in an adjacent section.',
     'Standardize: numbers 1–49 in a consistent sequence and grid.',
     'Find the missing number in the original, cluttered workplace. Time is measured.',
     'Find a different missing number in the standardized grid. Compare finding times.'

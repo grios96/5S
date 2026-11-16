@@ -54,7 +54,7 @@
   function roundInstruction(idx){
     if(idx===0)return '🔎 Cross off <b>1 → 49</b> in a clutter of 90 numbers.';
     if(idx===1)return '🧹 Numbers 50–90 are gone. Cross off <b>1 → 49</b>.';
-    if(idx===2)return '📍 3×3 zones and uniform color. Cross off <b>1 → 49</b>.';
+    if(idx===2)return '📍 9 large sections: each next number is in a neighboring section. Find <b>1 → 49</b>!';
     if(idx===3)return '📋 Standardized grid. Cross off <b>1 → 49</b> in order.';
     if(idx===4)return '🔍 Original workplace. One number from <b>1–49</b> is missing — which?';
     return '✨ Organized workplace. A different number from <b>1–49</b> is missing.';
