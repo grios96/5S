@@ -77,3 +77,15 @@ Se os telefones não conseguirem abrir: teste com o navegador de um celular, con
 - `test/test_game.py` — testes automatizados; rode `python -m unittest discover -s test -v`.
 
 **Não são coletados e-mails, senhas, localização nem dados pessoais além do nome digitado para o placar.** Os nomes e os resultados ficam somente na memória do servidor durante a sessão.
+
+## Render: diagnóstico de deploy (atualizado)
+
+**Para evitar problemas com mudanças de versão do Python no Render,** este pacote define Python 3.13.5 nos arquivos `.python-version` e `render.yaml`.
+
+- O serviço deve ser `Web Service`, não `Static Site`, com runtime `Python 3`.
+- Se você enviou todos os arquivos da pasta diretamente para o repositório GitHub, deixe `Root Directory` em branco.
+- Se criou uma subpasta para os arquivos, configure `Root Directory` com o nome da subpasta.
+- Use `pip install -r requirements.txt` e `uvicorn server:app --host 0.0.0.0 --port $PORT`.
+- Se o serviço já existe, em **Environment** defina `PYTHON_VERSION=3.13.5`, depois execute um novo deploy (preferencialmente **Clear build cache & deploy** se houver incompatibilidades em bibliotecas).
+- Se falhar, vá em **Deploys → deploy com erro → Logs** e leia as últimas 20–30 linhas. `Could not open requirements file` normalmente significa pasta/raiz errada; `Could not import module "server"` normalmente indica caminho ou arquivo `server.py` incorreto; `Port scan timeout reached` indica falha ao iniciar ou escutar na porta correta.
+- Para diagnosticar o erro específico, compartilhe as últimas linhas do log e/ou uma captura de tela, sem tokens ou segredos.
