@@ -26,7 +26,7 @@ ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 ROUND_LENGTH_MS = 30_000
 COUNTDOWN_MS = 4_000
 MAX_PLAYERS = 180
-ROUND_NAMES = ["BEFORE 5S", "SORT", "SET IN ORDER"]
+ROUND_NAMES = ["BEFORE 5S", "SORT", "SET IN ORDER", "STANDARDIZE"]
 
 
 def now_ms() -> int:
@@ -192,7 +192,7 @@ async def broadcast(room: Room, hosts_only: bool = False):
 
 
 async def begin_round(room: Room):
-    if room.stage not in ("lobby", "results") or room.round_index >= 2:
+    if room.stage not in ("lobby", "results") or room.round_index >= len(ROUND_NAMES) - 1:
         return
     if room.round_task and not room.round_task.done():
         room.round_task.cancel()
@@ -209,6 +209,8 @@ async def begin_round(room: Room):
     elif room.round_index == 1:
         room.board = list(range(1, 31))
         random.SystemRandom().shuffle(room.board)
+    elif room.round_index == 2:
+        room.board = list(range(1, 31))
     else:
         room.board = list(range(1, 31))
     for p in room.players.values():
@@ -253,7 +255,7 @@ async def finish_round(room: Room):
         prev = room.pre_ranks.get(p["id"])
         p["delta"] = prev - rank if prev is not None else None
     room.results = ranked
-    room.stage = "final" if room.round_index == 2 else "results"
+    room.stage = "final" if room.round_index == len(ROUND_NAMES) - 1 else "results"
     if room.round_task is not None and room.round_task is not asyncio.current_task():
         room.round_task.cancel()
     await broadcast(room)

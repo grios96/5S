@@ -4,6 +4,15 @@
   let clientId=localStorage.getItem(playerIdKey);
   if(!clientId){clientId=(crypto.randomUUID?crypto.randomUUID():'p'+Date.now()+Math.random().toString(16).slice(2));localStorage.setItem(playerIdKey,clientId);}
   let myName=localStorage.getItem('5sName')||'',joined=false,state=null,serverOffset=0,boardVersion='',localExpected=1,feedbackTimeout=null;
+  const TOTAL_ROUNDS=4;
+  const FONT_CHOICES=[
+    '"Trebuchet MS","Arial Black",Arial,sans-serif',
+    'Verdana,Geneva,sans-serif',
+    '"Tahoma",Geneva,sans-serif',
+    '"Courier New",monospace',
+    '"Georgia",serif',
+    '"Comic Sans MS","Trebuchet MS",cursive'
+  ];
   const sock=createSocket(code,handle, ws=>{
     byId('playerConnection').textContent='● Connected';
     byId('playerConnection').classList.remove('disconnected');
@@ -23,7 +32,6 @@
     sock.send({type:'join',name,clientId});
     byId('joinMessage').textContent='Joining room…';
   });
-  // A returning player reconnects automatically and keeps the previous score.
   if(myName){joined=true;}
   function handle(msg){
     if(msg.type==='error'){
@@ -42,6 +50,12 @@
   function showScreen(id){
     for(const section of document.querySelectorAll('main .screen'))section.hidden=section.id!==id;
   }
+  function roundInstruction(idx){
+    if(idx===0)return '🔎 Find <b>1 → 30</b> among 49 numbers!';
+    if(idx===1)return '🧹 Only what you need: find <b>1 → 30</b>!';
+    if(idx===2)return '📍 More order now: tap <b>1 → 30</b> in sequence!';
+    return '📋 Standardized layout: tap <b>1 → 30</b> as fast as you can!';
+  }
   function render(){
     if(!state||!state.me)return;
     const s=state,me=s.me;
@@ -50,13 +64,14 @@
       showScreen('lobbyScreen');byId('waitingTitle').textContent='Waiting for the host';byId('waitingDesc').textContent='The next round will start on the big screen.';
     } else if(['countdown','active'].includes(s.stage) && me.eligible){
       showScreen('gameScreen');
-      byId('roundTitle').textContent=`ROUND ${String(s.roundIndex+1).padStart(2,'0')} / 03`;
+      byId('roundTitle').textContent=`ROUND ${String(s.roundIndex+1).padStart(2,'0')} / ${String(TOTAL_ROUNDS).padStart(2,'0')}`;
       byId('roundDesc').textContent=s.roundName;
-      byId('boardInstructions').innerHTML=s.roundIndex===0?'🔎 Find <b>1 → 30</b> among 49 numbers!':s.roundIndex===1?'🧹 Only what you need: find <b>1 → 30</b>!':'📍 Everything in place: tap <b>1 → 30</b>!';
-      ensureBoard();updateProgress(me.nextExpected,me.roundPoints,me.correct,me.completed);
-      byId('gameOverlay').hidden=s.stage!=='countdown';
-      if(me.completed){byId('gameOverlay').hidden=false;byId('countdownNumber').textContent='✓';document.querySelector('.countdown-label').textContent='FINISHED!';document.querySelector('.countdown-note').textContent='Wait for the round to end.';}
-      else {document.querySelector('.countdown-label').textContent='GET READY';document.querySelector('.countdown-note').textContent='All players start together!';}
+      byId('boardInstructions').innerHTML=roundInstruction(s.roundIndex);
+      byId('gameOverlay').hidden=s.stage==='active';
+      document.querySelector('.countdown-label').textContent='GET READY';
+      document.querySelector('.countdown-note').textContent='All players start together!';
+      ensureBoard();
+      updateProgress(me.nextExpected,me.roundPoints,me.correct,me.completed);
     } else if(['results','final'].includes(s.stage)){
       showScreen('resultsScreen');renderResults();
     } else {
@@ -64,18 +79,66 @@
     }
     tickTimer();
   }
+  function styleSpecFor(num, idx){
+    const seed=(idx+1)*97+num*31;
+    if(idx===0){
+      return {
+        rotate:(seed%37)-18,
+        fontSize:85+(seed%55),
+        fontFamily:FONT_CHOICES[seed%FONT_CHOICES.length],
+        weight:700+(seed%3)*100,
+        x:((seed%7)-3)*1.5,
+        y:((seed%5)-2)*1.2
+      };
+    }
+    if(idx===1){
+      return {
+        rotate:(seed%21)-10,
+        fontSize:92+(seed%35),
+        fontFamily:FONT_CHOICES[seed%FONT_CHOICES.length],
+        weight:700+(seed%2)*100,
+        x:((seed%5)-2)*1.0,
+        y:((seed%5)-2)*0.8
+      };
+    }
+    if(idx===2){
+      return {
+        rotate:(seed%9)-4,
+        fontSize:96+(seed%18),
+        fontFamily:FONT_CHOICES[(seed+1)%FONT_CHOICES.length],
+        weight:800,
+        x:((seed%3)-1)*0.5,
+        y:((seed%3)-1)*0.5
+      };
+    }
+    return {
+      rotate:0,
+      fontSize:100,
+      fontFamily:'"Trebuchet MS",Arial,sans-serif',
+      weight:900,
+      x:0,
+      y:0
+    };
+  }
   function ensureBoard(){
     const s=state, version=s.roundIndex+':'+s.board.join(',');
     if(version===boardVersion)return;
     boardVersion=version;
     const board=byId('gameBoard');
-    board.className='number-board '+(s.roundIndex===0?'cluttered':s.roundIndex===1?'sorted':'ordered');
+    board.className='number-board '+(s.roundIndex===0?'cluttered':s.roundIndex===1?'sorted':s.roundIndex===2?'ordered':'standardized');
     const fragment=document.createDocumentFragment();
     for(const num of s.board){
       const el=document.createElement('button');
       el.type='button';el.className='number-tile';el.textContent=num;el.dataset.value=String(num);
       el.setAttribute('aria-label','Number '+num);
       if(s.roundIndex===0){el.classList.add('clutter-tone-'+(num%5));}
+      const spec=styleSpecFor(num,s.roundIndex);
+      el.style.setProperty('--num-rotate', spec.rotate+'deg');
+      el.style.setProperty('--num-size', spec.fontSize+'%');
+      el.style.setProperty('--num-x', spec.x+'px');
+      el.style.setProperty('--num-y', spec.y+'px');
+      el.style.fontFamily=spec.fontFamily;
+      el.style.fontWeight=String(spec.weight);
       el.addEventListener('click',()=>{
         if(!state||state.stage!=='active'||!state.me?.eligible||localExpected>30)return;
         sock.send({type:'tap',value:num});

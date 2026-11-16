@@ -5,6 +5,18 @@
   const token=sessionStorage.getItem('hostToken:'+code);
   if(!token){alert('Host token is missing. Create a new room from the home page.');location.replace('/');return;}
   let state=null,serverOffset=0,joinBase=location.origin;
+  const ROUND_SUBS=[
+    'Before 5S: numbers 1–30 mixed with 19 unnecessary numbers and visual clutter.',
+    'Sort: unnecessary numbers have been removed, but placement is still messy.',
+    'Set in Order: the numbers now have a fixed sequence, with less visual confusion.',
+    'Standardize: the layout is now fully consistent and easy to scan.'
+  ];
+  const ROUND_TIPS=[
+    '👀 <strong>Ask:</strong> How much time was spent searching instead of doing the actual task?',
+    '🧹 <strong>Ask:</strong> Did removing unnecessary items make the job easier?',
+    '📍 <strong>Ask:</strong> Did a consistent location make the job predictable and faster?',
+    '📋 <strong>Ask:</strong> How does standardization help every operator perform the task the same way?'
+  ];
   byId('roomCode').textContent=code;
   byId('baseUrl').value=joinBase;
   function qrRefresh(){
@@ -62,21 +74,11 @@
     });
     const title={lobby:'Leaderboard',countdown:`Round ${index+1} · Starting`,active:`Round ${index+1} · Live ranking`,results:`Round ${index+1} · Results`,final:'Final leaderboard'};
     byId('scoreTitle').textContent=title[phase];
-    const subs=[
-      'Before 5S: numbers 1–30 mixed with 19 unnecessary numbers.',
-      'Sort: unnecessary numbers have been removed.',
-      'Set in Order: the numbers now have a fixed, visual sequence.'
-    ];
-    byId('scoreSubtitle').textContent=phase==='lobby'?'Everyone starts at zero. Who will move up?':subs[index];
+    byId('scoreSubtitle').textContent=phase==='lobby'?'Everyone starts at zero. Who will move up?':ROUND_SUBS[index]||'';
     const ranked=['results','final'].includes(phase) ? s.results : s.leaderboard;
     renderPodium(ranked);
     renderLeaderboard(ranked,phase);
-    const tips=[
-      '👀 <strong>Ask:</strong> How much time was spent searching instead of doing the actual task?',
-      '🧹 <strong>Ask:</strong> Did removing unnecessary items make the job easier?',
-      '📍 <strong>Ask:</strong> Did a consistent location make the job predictable and faster?'
-    ];
-    byId('takeaway').innerHTML=phase==='lobby'?'💡 <strong>Goal:</strong> Same task, three environments. Watch what organization changes.':tips[Math.max(0,index)];
+    byId('takeaway').innerHTML=phase==='lobby'?'💡 <strong>Goal:</strong> Same task, four environments. Watch what organization changes.':ROUND_TIPS[Math.max(0,index)]||ROUND_TIPS[0];
     tickTimer();
   }
   function renderPodium(data){

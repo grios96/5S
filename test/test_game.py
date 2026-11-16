@@ -1,4 +1,4 @@
-"""Basic smoke tests: room, QR, two clients, scoring, 3 rounds and final leaderboard."""
+"""Basic smoke tests: room, QR, two clients, scoring, 4 rounds and final leaderboard."""
 import os
 import sys
 import time
@@ -41,7 +41,7 @@ class GameTests(unittest.TestCase):
                     player.send_json({'type':'join','clientId':'aaaaaaaa-1111-1111-1111-111111111111','name':'Sam'})
                     self.assertEqual(player.receive_json()['playersCount'], 1)
                     self.get_until(host, lambda m:m.get('type')=='snapshot' and m['playersCount']==1)
-                    for r in range(3):
+                    for r in range(4):
                         host.send_json({'type':'start'})
                         start = self.get_until(player, lambda m:m.get('type')=='snapshot' and m['stage']=='countdown')
                         self.assertEqual(start['roundIndex'],r)
